@@ -142,8 +142,8 @@ NOTES:
  *   Rating: 1
  */
 int bitXor(int x, int y) {
-  int a = ~x, b = ~y;
-  return ~(x & y) & ~(a & b);
+    /* The bit pattern of xor could be made of and(or(x, y), nand(x, y)). */
+    return ~(x & y) & ~(~x & ~y);
 }
 /*
  * tmin - return minimum two's complement integer
@@ -152,8 +152,8 @@ int bitXor(int x, int y) {
  *   Rating: 1
  */
 int tmin(void) {
-  unsigned int x = 1;
-  return x << 31;
+    /* The bit pattern of int value 1 left shifting 31 bits. */
+    return 1 << 31;
 }
 // 2
 /*
@@ -163,7 +163,10 @@ int tmin(void) {
  *   Max ops: 10
  *   Rating: 1
  */
-int isTmax(int x) { return !(x + 1 + x + 1); }
+int isTmax(int x) {
+    /* n + n == 0 if and only if n = Tmin = Tmax + 1*/
+    return !(x + 1 + x + 1);
+}
 /*
  * allOddBits - return 1 if all odd-numbered bits in word set to 1
  *   where bits are numbered from 0 (least significant) to 31 (most significant)
@@ -173,10 +176,9 @@ int isTmax(int x) { return !(x + 1 + x + 1); }
  *   Rating: 2
  */
 int allOddBits(int x) {
-  unsigned int allOddOne = 0xAA;
-  allOddOne =
-      allOddOne + (allOddOne << 8) + (allOddOne << 16) + (allOddOne << 24);
-  return !(x & allOddOne ^ allOddOne);
+    /* n + (n << 1) + 1 == 0 if and only if x = 0b0101...01 */
+    int bnot = ~x;
+    return !(bnot + (bnot << 1) + 1);
 }
 /*
  * negate - return -x
@@ -196,11 +198,13 @@ int negate(int x) { return ~x + 1; }
  *   Rating: 3
  */
 int isAsciiDigit(int x) {
-  int is1To7, is8, is9;
-  is1To7 = !(x ^ 0x30 >> 3);
-  is8 = !(x ^ 0x38);
-  is9 = !(x ^ 0x39);
-  return is1To7 | is8 | is9;
+    /* 0011 0000 - 0011 1001
+     * a ^ b == 0 if and only if a and b have the same bit pattern. */
+    int is0To7, is8, is9;
+    is0To7 = !((x >> 3) ^ 0b110);
+    is8 = !(x ^ 0x38);
+    is9 = !(x ^ 0x39);
+    return is0To7 | is8 | is9;
 }
 /*
  * conditional - same as x ? y : z
@@ -210,8 +214,9 @@ int isAsciiDigit(int x) {
  *   Rating: 3
  */
 int conditional(int x, int y, int z) {
-  int mask = !x - 1;
-  return (y & mask) | (z & ~mask);
+    /* mask will have bit pattern 11...1 if x is true, 0...0 if false.  */
+    int mask = !x - 1;
+    return (y & mask) | (z & ~mask);
 }
 /*
  * isLessOrEqual - if x <= y  then return 1, else return 0
@@ -221,13 +226,14 @@ int conditional(int x, int y, int z) {
  *   Rating: 3
  */
 int isLessOrEqual(int x, int y) {
-  int isXNeg = x >> 30 >> 1;
-  int isYPos = !(y >> 30 >> 1);
-  int isXLessY = (x + (~y + 1)) >> 30 >> 1;
-  int case0 = !(x ^ y);
-  int case1 = isYPos & isXNeg;
-  int case2 = isYPos ^ isXNeg & isXLessY;
-  return case0 | case1 | case2;
+    /* (x == y) or (x < 0 && y >= 0) or (y - x >= 0). */
+    int isXNeg = !!(x >> 31);
+    int isYNotNeg = !(y >> 31);
+    int isLess = !((y + ~x + 1) >> 31);
+    int case0 = !(x ^ y);
+    int case1 = isXNeg & isYNotNeg;
+    int case2 = isXNeg ^ isYNotNeg & isLess;
+    return case0 | case1 | case2;
 }
 // 4
 /*
@@ -239,11 +245,12 @@ int isLessOrEqual(int x, int y) {
  *   Rating: 4
  */
 int logicalNeg(int x) {
-  int negDetection = ~x >> 30 >> 1;      // == 0 if x neg, or -1 if not
-  int posDetection = (x - 1) >> 30 >> 1; // == 0 if x pos, or -1 if not
+    /* ~0b1...10 == 1 ~0b1...1 == 0 */
+    int negDetection = ~x >> 31;       // == 0 if x < 0, -1 if not
+    int posDetection = (x - 1) >> 31;  // == 0 if x > 0, -1 if not
 
-  // == -2 if x is zero, or -1 if not
-  return ~(negDetection + posDetection);
+    // == -2 if x is zero, or -1 if not
+    return ~(negDetection + posDetection);
 }
 /* howManyBits - return the minimum number of bits required to represent x in
  *             two's complement
@@ -258,11 +265,18 @@ int logicalNeg(int x) {
  *  Rating: 4
  */
 int howManyBits(int x) {
-  int requireDigit0 = (!!x) & (!!(x + 1)); // == 0 if x is 0 or -1
-  int requireDigit1 = (x >> 1) & ((x >> 1) + 1);
-  int requireDigit2 = (x >> 2) & ((x >> 2) + 1);
-  int requireDigit3 = (x >> 3) & ((x >> 3) + 1);
-  return 0;
+    /* !(x >> b) == 0 if the shifted bit is not the first 1 from left, or 1 if it
+     * is */
+    int n = !x + !(x + 1);
+    n = n + !(x >> 1) + !(x >> 2) + !(x >> 3) + !(x >> 4) + !(x >> 5) + !(x >> 6) + !(x >> 7) +
+        !(x >> 8) + !(x >> 9) + !(x >> 10) + !(x >> 11) + !(x >> 12) + !(x >> 13) + !(x >> 14) +
+        !(x >> 15) + !(x >> 16) + !(x >> 17) + !(x >> 18) + !(x >> 19) + !(x >> 20) + !(x >> 21) +
+        !(x >> 22) + !(x >> 23) + !(x >> 24) + !(x >> 25) + !(x >> 26) + !(x >> 27) + !(x >> 28) +
+        !(x >> 29) + !(x >> 30) + !(x >> 31) +
+        !(x >> 32)
+
+            return 32 -
+        n + 2;
 }
 // float
 /*
@@ -276,7 +290,12 @@ int howManyBits(int x) {
  *   Max ops: 30
  *   Rating: 4
  */
-unsigned floatScale2(unsigned uf) { return 2; }
+unsigned floatScale2(unsigned uf) {
+    if ((uf & 0x7f800000) == 0x7f800000) {
+        return uf;
+    }
+    return uf + 0x00800000;
+}
 /*
  * floatFloat2Int - Return bit-level equivalent of expression (int) f
  *   for floating point argument f.
@@ -289,7 +308,40 @@ unsigned floatScale2(unsigned uf) { return 2; }
  *   Max ops: 30
  *   Rating: 4
  */
-int floatFloat2Int(unsigned uf) { return 2; }
+int floatFloat2Int(unsigned uf) {
+    /* Tmin = -2^31 = 110011110 0...0
+     * Tmax = 0b0111 1...1 = e + 2^30 * 1.1...1 = 010011101 1...1 */
+    if ((uf & 0x7f800000) == 0x7f800000             // Special values
+        || uf > 0xcf000000                          // downflow
+        || (uf > 0x4effffff && uf < 0x80000000)) {  // upflow
+        return 0x80000000u;
+    }
+
+    unsigned s = uf >> 31;
+    unsigned e = (uf >> 23) & 0xff;
+    unsigned f = uf & 0x7fffff;
+    unsigned E;
+
+    if (e != 0) {  // normal value f += 1.0, E = e - 127
+        f += 0x800000;
+        E = e - 127;
+    } else {
+        E = 1 - 127;  // denormal value f = f, E = 1 - 127
+    }
+
+    unsigned n;     // final value n
+    if (E >> 31) {  // E < 0 n equels 0.f round to 0
+        n = 0;
+    } else {
+        n = f >> (23 - E);
+    }
+
+    if (s != 0) {  // sign bit
+        n = ~n + 1;
+    }
+
+    return n;
+}
 /*
  * floatPower2 - Return bit-level equivalent of the expression 2.0^x
  *   (2.0 raised to the power x) for any 32-bit integer x.
@@ -303,4 +355,21 @@ int floatFloat2Int(unsigned uf) { return 2; }
  *   Max ops: 30
  *   Rating: 4
  */
-unsigned floatPower2(int x) { return 2; }
+unsigned floatPower2(int x) {
+    /* 2.0^x * 1.0...0-> 0 00000000 0...0 */
+    if (x < -149) {  // smallest value 0 00000000 0...01 -> 2.0^-126 * 0.0...01 = 2.0^-149
+        return 0;
+    } else if (x > 127) {   // largest value 0 11111110 0...0 -> 2.0^127
+        return 0x7f800000;  // 0111 1111 1 0...0
+    }
+
+    unsigned s = 0, e, f;
+    if (x <= -127) {  // biggest denormal values
+        e = 0;
+        f = 1 << (149 + x);  // shifted bits number is 23-(-126-x)
+    } else {                 // normal values 0 xxxxxxxx 0...0
+        e = x + 127;
+        f = 0;
+    }
+    return (e << 23) + f;
+}
