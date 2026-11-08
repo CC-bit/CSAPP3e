@@ -164,8 +164,8 @@ int tmin(void) {
  *   Rating: 1
  */
 int isTmax(int x) {
-    /* n + n == 0 if and only if n = Tmin = Tmax + 1*/
-    return !(x + 1 + x + 1);
+    /* n + n == 0 if and only if n = 0 or n = Tmin = Tmax + 1*/
+    return !(x + 2 + x) & !!(x ^ (~1 + 1));
 }
 /*
  * allOddBits - return 1 if all odd-numbered bits in word set to 1
@@ -176,9 +176,12 @@ int isTmax(int x) {
  *   Rating: 2
  */
 int allOddBits(int x) {
-    /* n + (n << 1) + 1 == 0 if and only if x = 0b0101...01 */
-    int bnot = ~x;
-    return !(bnot + (bnot << 1) + 1);
+    /* 1x...1x1x */
+    int mask = 0xaa;
+    mask += mask << 8;
+    mask += mask << 16; /* mask 1010...10 */
+
+    return !((x & mask) ^ mask);
 }
 /*
  * negate - return -x
@@ -201,7 +204,7 @@ int isAsciiDigit(int x) {
     /* 0011 0000 - 0011 1001
      * a ^ b == 0 if and only if a and b have the same bit pattern. */
     int is0To7, is8, is9;
-    is0To7 = !((x >> 3) ^ 0b110);
+    is0To7 = !((x >> 3) ^ 6);
     is8 = !(x ^ 0x38);
     is9 = !(x ^ 0x39);
     return is0To7 | is8 | is9;
@@ -215,7 +218,7 @@ int isAsciiDigit(int x) {
  */
 int conditional(int x, int y, int z) {
     /* mask will have bit pattern 11...1 if x is true, 0...0 if false.  */
-    int mask = !x - 1;
+    int mask = !x + (~1 + 1);
     return (y & mask) | (z & ~mask);
 }
 /*
@@ -232,7 +235,7 @@ int isLessOrEqual(int x, int y) {
     int isLess = !((y + ~x + 1) >> 31);
     int case0 = !(x ^ y);
     int case1 = isXNeg & isYNotNeg;
-    int case2 = isXNeg ^ isYNotNeg & isLess;
+    int case2 = (isXNeg ^ isYNotNeg) & isLess;
     return case0 | case1 | case2;
 }
 // 4
@@ -245,12 +248,17 @@ int isLessOrEqual(int x, int y) {
  *   Rating: 4
  */
 int logicalNeg(int x) {
-    /* ~0b1...10 == 1 ~0b1...1 == 0 */
-    int negDetection = ~x >> 31;       // == 0 if x < 0, -1 if not
-    int posDetection = (x - 1) >> 31;  // == 0 if x > 0, -1 if not
-
-    // == -2 if x is zero, or -1 if not
-    return ~(negDetection + posDetection);
+    /* ~0b1...10 == 1 ~0b1...1 == 0
+     * (x << 32) ^ x = x if x = 0, = x if x != 0 */
+    x |= (x << 1);
+    x |= (x << 2);
+    x |= (x << 4);
+    x |= (x << 8);
+    x |= (x << 16);
+    return 1 + (x >> 31);
+    /* int negDetection = ~x >> 31;                // == 0 if x < 0, -1 if not
+    int posDetection = (~x + (1 << 31)) >> 31;  // == 0 if x > 0, -1 if not
+    return ~(negDetection + posDetection);*/
 }
 /* howManyBits - return the minimum number of bits required to represent x in
  *             two's complement
@@ -265,18 +273,33 @@ int logicalNeg(int x) {
  *  Rating: 4
  */
 int howManyBits(int x) {
-    /* !(x >> b) == 0 if the shifted bit is not the first 1 from left, or 1 if it
-     * is */
-    int n = !x + !(x + 1);
-    n = n + !(x >> 1) + !(x >> 2) + !(x >> 3) + !(x >> 4) + !(x >> 5) + !(x >> 6) + !(x >> 7) +
-        !(x >> 8) + !(x >> 9) + !(x >> 10) + !(x >> 11) + !(x >> 12) + !(x >> 13) + !(x >> 14) +
-        !(x >> 15) + !(x >> 16) + !(x >> 17) + !(x >> 18) + !(x >> 19) + !(x >> 20) + !(x >> 21) +
-        !(x >> 22) + !(x >> 23) + !(x >> 24) + !(x >> 25) + !(x >> 26) + !(x >> 27) + !(x >> 28) +
-        !(x >> 29) + !(x >> 30) + !(x >> 31) +
-        !(x >> 32)
+    /* */
+    int posX, sum1, sum2, sum3, sum4, sum5, mask1, mask2, mask3, mask4, mask5;
 
-            return 32 -
-        n + 2;
+    posX = x ^ (x >> 31);  // Transform x to be nonegtive, the required bits stay the same.
+    posX |= posX >> 1;
+    posX |= posX >> 2;
+    posX |= posX >> 4;
+    posX |= posX >> 8;
+    posX |= posX >> 16;  // Transform x into form 0...01...1
+
+    mask1 = 0x55 + (0x55 << 8);
+    mask1 += mask1 << 16;  // 0101...01
+    mask2 = 0x33 + (0x33 << 8);
+    mask2 += mask2 << 16;  // 0011...0011
+    mask3 = 0x0f + (0x0f << 8);
+    mask3 += mask3 << 16;         // 00001111...00001111
+    mask4 = 0xff + (0xff << 16);  // 00000000111111110000000011111111
+    mask5 = 0xff + (0xff << 8);   // 00000000000000001111111111111111
+
+    // Every 2 bits in sum1 stores the 2 bits information of x
+    sum1 = (posX & mask1) + ((posX >> 1) & mask1);
+    sum2 = (sum1 & mask2) + ((sum1 >> 2) & mask2);   // Every 4 bits stores the 4 bits information
+    sum3 = (sum2 & mask3) + ((sum2 >> 4) & mask3);   // Every 8 bits stores the 8 bits information
+    sum4 = (sum3 & mask4) + ((sum3 >> 8) & mask4);   // Every 16 bits stores the 16 bits information
+    sum5 = (sum4 & mask5) + ((sum4 >> 16) & mask5);  // Every 32 bits stores the 32 bits information
+
+    return sum5 + 1;
 }
 // float
 /*
@@ -291,10 +314,26 @@ int howManyBits(int x) {
  *   Rating: 4
  */
 unsigned floatScale2(unsigned uf) {
-    if ((uf & 0x7f800000) == 0x7f800000) {
+    unsigned s, e, f;
+    s = uf & 0x80000000;
+    e = uf & 0x7f800000;
+    f = uf & 0x7fffff;
+
+    if (e == 0x7f800000) {  // Special case, uf is NaN, +/-INF
         return uf;
     }
-    return uf + 0x00800000;
+
+    if (e == 0 &&
+        (f & 0x400000) == 0x400000) {  // Edge point: uf is denormal, result is normal. f_n-1 == 0
+        e = 0x800000;
+        f = (f << 1) & 0x7fffff;
+    } else if (e == 0) {  // The result is denormal
+        f <<= 1;
+    } else {  // The result is normal
+        e += 0x800000;
+    }
+
+    return s + e + f;
 }
 /*
  * floatFloat2Int - Return bit-level equivalent of expression (int) f
@@ -311,32 +350,31 @@ unsigned floatScale2(unsigned uf) {
 int floatFloat2Int(unsigned uf) {
     /* Tmin = -2^31 = 110011110 0...0
      * Tmax = 0b0111 1...1 = e + 2^30 * 1.1...1 = 010011101 1...1 */
-    if ((uf & 0x7f800000) == 0x7f800000             // Special values
-        || uf > 0xcf000000                          // downflow
-        || (uf > 0x4effffff && uf < 0x80000000)) {  // upflow
+    unsigned s, e, f, E, n;
+    if ((uf & 0x7f800000) == 0x7f800000            /* Special values */
+        || uf > 0xcf000000                         /* downflow */
+        || (uf > 0x4effffff && uf < 0x80000000)) { /* upflow */
         return 0x80000000u;
     }
 
-    unsigned s = uf >> 31;
-    unsigned e = (uf >> 23) & 0xff;
-    unsigned f = uf & 0x7fffff;
-    unsigned E;
+    s = uf >> 31;
+    e = (uf >> 23) & 0xff;
+    f = uf & 0x7fffff;
 
-    if (e != 0) {  // normal value f += 1.0, E = e - 127
+    if (e != 0) { /* normal value f += 1.0, E = e - 127 */
         f += 0x800000;
         E = e - 127;
     } else {
-        E = 1 - 127;  // denormal value f = f, E = 1 - 127
+        E = 1 - 127; /* denormal value f = f, E = 1 - 127 */
     }
 
-    unsigned n;     // final value n
-    if (E >> 31) {  // E < 0 n equels 0.f round to 0
+    if (E >> 31) { /* E < 0 n equels 0.f round to 0 */
         n = 0;
     } else {
         n = f >> (23 - E);
     }
 
-    if (s != 0) {  // sign bit
+    if (s != 0) { /* sign bit */
         n = ~n + 1;
     }
 
@@ -357,17 +395,17 @@ int floatFloat2Int(unsigned uf) {
  */
 unsigned floatPower2(int x) {
     /* 2.0^x * 1.0...0-> 0 00000000 0...0 */
-    if (x < -149) {  // smallest value 0 00000000 0...01 -> 2.0^-126 * 0.0...01 = 2.0^-149
+    unsigned e, f;
+    if (x < -149) { /* smallest value 0 00000000 0...01 -> 2.0^-126 * 0.0...01 = 2.0^-149 */
         return 0;
-    } else if (x > 127) {   // largest value 0 11111110 0...0 -> 2.0^127
-        return 0x7f800000;  // 0111 1111 1 0...0
+    } else if (x > 127) {  /* largest value 0 11111110 0...0 -> 2.0^127 */
+        return 0x7f800000; /* 0111 1111 1 0...0 */
     }
 
-    unsigned s = 0, e, f;
-    if (x <= -127) {  // biggest denormal values
+    if (x <= -127) { /* biggest denormal values */
         e = 0;
-        f = 1 << (149 + x);  // shifted bits number is 23-(-126-x)
-    } else {                 // normal values 0 xxxxxxxx 0...0
+        f = 1 << (149 + x); /* shifted bits number is 23-(-126-x) */
+    } else {                /* normal values 0 xxxxxxxx 0...0 */
         e = x + 127;
         f = 0;
     }
