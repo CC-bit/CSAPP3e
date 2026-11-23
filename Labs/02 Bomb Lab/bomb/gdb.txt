@@ -1,0 +1,81 @@
+0x7fffffffe3d8:	"\217\347\377\377\377\177"
+0x7fffffffe3d8:	"\217\347\377\377\377\177"
+0x0000000000400efd in phase_2 ()
+1: x/i $pc
+=> 0x400efd <phase_2+1>:	push   %rbx
+0x7fffffffe3d8:	"\217\347\377\377\377\177"
+0x0000000000400efe in phase_2 ()
+1: x/i $pc
+=> 0x400efe <phase_2+2>:	sub    $0x28,%rsp
+0x7fffffffe3d8:	"\217\347\377\377\377\177"
+0x0000000000400f02 in phase_2 ()
+1: x/i $pc
+=> 0x400f02 <phase_2+6>:	mov    %rsp,%rsi
+0x6037d0 <input_strings+80>:	"1 2 3 4 5 6"
+0x0000000000400f05 in phase_2 ()
+1: x/i $pc
+=> 0x400f05 <phase_2+9>:	call   0x40145c <read_six_numbers>
+0x7fffffffe270:	"\330\343\377\377\377\177"
+0x6037d0 <input_strings+80>:	"1 2 3 4 5 6"
+0x0000000000400f0a in phase_2 ()
+1: x/i $pc
+=> 0x400f0a <phase_2+14>:	cmpl   $0x1,(%rsp)
+❌️ 'at 0x0x4' has unknown return type; cast the call to its declared return type
+$1 = 2
+❌️ No symbol "s" in current context.
+$2 = 2 '\002'
+$3 = 3 '\003'
+$4 = 3 '\003'
+0x7fffffffe274:	"\002"
+0x7fffffffe270:	"\001"
+0x7fffffffe27c:	"\004"
+0x7fffffffe27c:	4
+Starting program: /home/dhzp/CSAPP3e/Labs/02 Bomb Lab/bomb/bomb s.txt
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/usr/lib/libthread_db.so.1".
+
+Breakpoint 1, 0x0000000000400efc in phase_2 ()
+1: x/i $pc
+=> 0x400efc <phase_2>:	push   %rbp
+0x0000000000400efd in phase_2 ()
+1: x/i $pc
+=> 0x400efd <phase_2+1>:	push   %rbx
+0x0000000000400efe in phase_2 ()
+1: x/i $pc
+=> 0x400efe <phase_2+2>:	sub    $0x28,%rsp
+0x0000000000400f02 in phase_2 ()
+1: x/i $pc
+=> 0x400f02 <phase_2+6>:	mov    %rsp,%rsi
+0x0000000000400f05 in phase_2 ()
+1: x/i $pc
+=> 0x400f05 <phase_2+9>:	call   0x40145c <read_six_numbers>
+0x0000000000400f0a in phase_2 ()
+1: x/i $pc
+=> 0x400f0a <phase_2+14>:	cmpl   $0x1,(%rsp)
+0x0000000000400f0e in phase_2 ()
+1: x/i $pc
+=> 0x400f0e <phase_2+18>:	je     0x400f30 <phase_2+52>
+0x0000000000400f30 in phase_2 ()
+1: x/i $pc
+=> 0x400f30 <phase_2+52>:	lea    0x4(%rsp),%rbx
+0x0000000000400f35 in phase_2 ()
+1: x/i $pc
+=> 0x400f35 <phase_2+57>:	lea    0x18(%rsp),%rbp
+0x0000000000400f3a in phase_2 ()
+1: x/i $pc
+=> 0x400f3a <phase_2+62>:	jmp    0x400f17 <phase_2+27>
+0x0000000000400f17 in phase_2 ()
+1: x/i $pc
+=> 0x400f17 <phase_2+27>:	mov    -0x4(%rbx),%eax
+0x0000000000400f1a in phase_2 ()
+1: x/i $pc
+=> 0x400f1a <phase_2+30>:	add    %eax,%eax
+0x0000000000400f1c in phase_2 ()
+1: x/i $pc
+=> 0x400f1c <phase_2+32>:	cmp    %eax,(%rbx)
+0x0000000000400f1e in phase_2 ()
+1: x/i $pc
+=> 0x400f1e <phase_2+34>:	je     0x400f25 <phase_2+41>
+0x0000000000400f25 in phase_2 ()
+1: x/i $pc
+=> 0x400f25 <phase_2+41>:	add    $0x4,%rbx
